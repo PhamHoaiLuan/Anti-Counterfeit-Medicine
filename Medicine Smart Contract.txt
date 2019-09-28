@@ -1,0 +1,183 @@
+pragma solidity ^0.4.18;
+
+contract Drug_Management {
+
+    address public Government;
+
+    modifier onlyGorvernment() {
+        require(msg.sender == Government);
+        _;
+    }
+
+    function Drug_Management() public {
+        Government = msg.sender;
+    }
+    
+    //******************************************************//
+    //******************************************************//
+    //                                                      //
+    //        GS1 Office Register Smart Contract            //
+    //                                                      //
+    //******************************************************//
+    //******************************************************//
+
+    address public GS1;
+    
+    modifier onlyGS1() {
+        require(msg.sender == GS1);
+        _;
+    }
+    function Add_GS1(address _address) onlyGorvernment public {
+        require(_address != 0);
+        GS1 = _address;
+    }
+
+    //******************************************************//
+    //******************************************************//
+    //                                                      //
+    //       Manufacturer Register Smart Contract           //
+    //                                                      //
+    //******************************************************//
+    //******************************************************//
+
+    struct Manufacturer{
+        bool Is_Registered;
+        string IPFS_Information;
+        uint40 GS1_Prefix;
+    }
+    
+    mapping (address => Manufacturer) public manufacturers;
+
+    function Manufactuer_Registration(address _address, string _IPFS_Information) onlyGorvernment public {
+        require(_address != 0);
+        manufacturers[_address].Is_Registered = true;
+        manufacturers[_address].IPFS_Information = _IPFS_Information;
+    }
+    
+    function GS1_Prefix_Registration(address _address,uint40  _GS1_Prefix) onlyGorvernment public {
+        require(_address != 0);
+        manufacturers[_address].GS1_Prefix = _GS1_Prefix;
+    }
+
+    function Remove_Manufacturer(address _address) onlyGorvernment public {
+        manufacturers[_address].Is_Registered = false;
+    }
+
+    function Get_Information(address _address) view public returns (string) {
+        return (manufacturers[_address].IPFS_Information);
+    }
+    
+    function Get_GS1_Prefix(address _address) view public returns (uint40) {
+        return (manufacturers[_address].GS1_Prefix);
+    }
+
+    //******************************************************//
+    //******************************************************//
+    //                                                      //
+    //          Business Register Smart Contract            //
+    //                                                      //
+    //******************************************************//
+    //******************************************************//
+
+    struct Business{
+        bool Is_Registered;
+        string IPFS_Information;
+    }
+
+    mapping (address => Business) public Businesses;
+
+    function Add_Business(address _address, string _IPFS_Information) onlyGorvernment public {
+        require(_address != 0);
+        Businesses[_address].Is_Registered = true;
+        Businesses[_address].IPFS_Information = _IPFS_Information;
+    }
+
+    function Remove_Business(address _address) onlyGorvernment public {
+        Businesses[_address].Is_Registered = false;
+    }
+
+    function Get_Business(address _address) view public returns (string) {
+        return (Businesses[_address].IPFS_Information);
+    }
+
+    //******************************************************//
+    //******************************************************//
+    //                                                      //
+    //              Drug Smart Contract                     //
+    //                                                      //
+    //******************************************************//
+    //******************************************************//
+
+    struct GTIN_Medicine{
+        string IPFS_Information;
+        address GTIN_Owner;
+        mapping (uint => address) Lot_Owner;
+        mapping (uint => mapping (uint => address)) Serialization_Owner;
+    }
+
+    
+    mapping (uint => GTIN_Medicine) public medicines;
+    
+    modifier onlyManufacturer() {
+        require(manufacturers[msg.sender].Is_Registered == true);
+        _;
+    }
+    
+    modifier onlyGTINOwner(uint _GTIN){
+        require(medicines[_GTIN].GTIN_Owner == msg.sender);
+        _;
+    }
+    
+    modifier onlyLotOwner(uint _GTIN, uint _Lot){
+        require(medicines[_GTIN].Lot_Owner[_Lot] == msg.sender);
+        _;
+    }
+    
+    modifier onlySerialOwner(uint _GTIN, uint _Lot, uint _Serial ) {
+        require(medicines[_GTIN].Serialization_Owner[_Lot][_Serial] == msg.sender);
+        _;
+    }
+    
+    function Add_GTIN_Ownership(uint _GTIN) onlyManufacturer public {
+        medicines[_GTIN].GTIN_Owner = msg.sender;
+    }
+
+    function Add_GTIN_Information(uint _GTIN, string _IPFS_Information) onlyManufacturer public {
+        medicines[_GTIN].IPFS_Information = _IPFS_Information;
+    }
+    
+    function Transfer_GTIN(uint _GTIN, address _newowner) onlyGTINOwner(_GTIN) public {
+        medicines[_GTIN].GTIN_Owner = _newowner;
+    }
+    
+    function Add_LotOwnership(uint _GTIN, uint _Lot, address _newowner) onlyGTINOwner(_GTIN) public {
+        require(medicines[_GTIN].Lot_Owner[_Lot] == 0);
+        medicines[_GTIN].Lot_Owner[_Lot] = _newowner;
+    }
+    
+    function Transfer_Lot(uint _GTIN, uint _Lot, address _newowner) onlyLotOwner(_GTIN, _Lot) public {
+        medicines[_GTIN].Lot_Owner[_Lot] = _newowner;
+    }
+    
+    function Add_SerialOwnership(uint _GTIN, uint _Lot, uint _Serial, address _newowner) onlyLotOwner(_GTIN, _Lot) public {
+        require(medicines[_GTIN].Serialization_Owner[_Lot][_Serial] == 0);
+        medicines[_GTIN].Serialization_Owner[_Lot][_Serial]=_newowner;
+    }
+    
+    function Transfer_Serial(uint _GTIN, uint _Lot, uint _Serial, address _newowner) onlySerialOwner(_GTIN,_Lot,_Serial) public {
+        medicines[_GTIN].Serialization_Owner[_Lot][_Serial]=_newowner;
+    }
+    
+    function Get_GTIN_Owner(uint _GTIN) view public returns (address) {
+        return (medicines[_GTIN].GTIN_Owner);
+    }
+    
+    function Get_Lot_Owner(uint _GTIN, uint _Lot) view public returns (address) {
+        return (medicines[_GTIN].Lot_Owner[_Lot]);
+    }
+    
+    function Get_Serialization_Owner(uint _GTIN, uint _Lot, uint _Serial) view public returns (address) {
+        return (medicines[_GTIN].Serialization_Owner[_Lot][_Serial]);
+    }
+}
+
